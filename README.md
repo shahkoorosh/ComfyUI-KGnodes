@@ -7,7 +7,7 @@ A couple of ComfyUI custom nodes that I made for my projects
 
 Custom Resolution Latent Node:
 
-This node is specifically designed for use with SD3. Users can select an aspect ratio (Thanks to ) and a target size of either 1MP or 2MP, and the node will then determine the optimal resolution for compatibility with SD3 models.
+This node is specifically designed for use with SD3. Users can select an aspect ratio and a target size of either 1MP or 2MP, and the node will then determine the optimal resolution for compatibility with SD3 models.
 
 ![image](https://github.com/user-attachments/assets/5faa7584-9a8c-43fb-9a81-a17dbb98998a)
 
