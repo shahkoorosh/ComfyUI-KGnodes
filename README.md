@@ -22,6 +22,8 @@ In this node, the CLIP input is optional. If you connect the input CLIP, you get
 
 
 
+
+
 ## Installation
 
 1. Go to comfyUI custom_nodes folder, `ComfyUI/custom_nodes/`
