@@ -3,6 +3,9 @@
 A couple of ComfyUI custom nodes that I made for my projects
 
 
+![image](https://github.com/user-attachments/assets/7887ddcf-43cd-4f83-9fd9-2ed04a6c9d2b)
+
+
 ## Features
 
 Custom Resolution Latent Node: <br>
