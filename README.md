@@ -35,6 +35,8 @@ In this node, the CLIP input is optional. If you connect the input CLIP, you get
 4. Restart ComfyUI.
 
 
+
+
 ## Acknowledgements
 Thanks to [twri](https://github.com/twri/sdxl_prompt_styler) for SDXL Prompt Styler Node, [chibiace](https://github.com/chibiace/ComfyUI-Chibi-Nodes) for Prompts Node and [ControlAltAI](https://github.com/gseth/ControlAltAI-Nodes) for Flux Resolution Calc Node.
 
