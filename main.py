@@ -1,16 +1,21 @@
 import os
-import re
 import json
 import math
 import torch
-import comfy.model_management
 
+class BaseNode:
+    def __init__(self):
+        pass  # Minimal base class for all nodes
 
-class CustomResolutionLatentNode:
+class CustomResolutionLatentNode(BaseNode):
     """
     A custom node that calculates an image's width and height based on aspect ratio and a chosen mode (1MP or 2MP),
     then produces an empty latent tensor of that size, along with the computed resolution as a string.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -27,13 +32,12 @@ class CustomResolutionLatentNode:
                 "custom_ratio": ("BOOLEAN", {"default": False, "label_on": "Enable", "label_off": "Disable"}),
             },
             "optional": {
-                "custom_aspect_ratio": ("STRING", {"default": "1:1"}),
+                "custom_aspect_ratio": ("STRING", {"default": "1:1"}),               
             }
         }
 
-    # Now we return two outputs: LATENT and STRING (for resolution display)
-    RETURN_TYPES = ("LATENT", "STRING",)
-    RETURN_NAMES = ("LATENT", "Latent_Resolution",)
+    RETURN_TYPES = ("LATENT", "INT", "INT",)
+    RETURN_NAMES = ("LATENT", "width", "height",)
     FUNCTION = "generate"
     CATEGORY = "🎨KG"
     DESCRIPTION = "Produces a latent image at 1MP or 2MP resolution based on aspect ratio and shows the computed resolution."
@@ -71,12 +75,10 @@ class CustomResolutionLatentNode:
         batch_size = 1
         latent = torch.zeros([batch_size, 4, height // 8, width // 8], device=self.device)
 
-        # Create a resolution string
-        resolution_str = f"{width} x {height}"
+        # Return the latent tensor and resolution
+        return ({"samples": latent}, width, height)
 
-        return ({"samples": latent}, resolution_str)
-
-class StyleSelector:
+class StyleSelector(BaseNode):
     """
     A custom node that:
       1) Loads styles from a JSON file.
@@ -84,6 +86,8 @@ class StyleSelector:
       3) Merges user prompts with the selected style.
       4) Optionally encodes them into CONDITIONING with an available CLIP model.
     """
+    def __init__(self):
+        super().__init__()
 
     @staticmethod
     def load_styles_json(styles_path: str):
@@ -213,6 +217,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "CustomResolutionLatentNode": "SD.35 Perfect Resolution",
+    "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
 }

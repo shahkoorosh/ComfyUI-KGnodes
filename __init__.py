@@ -1,15 +1,30 @@
-from .main import CustomResolutionLatentNode, StyleSelector
+import inspect
+import sys
+import os
+
+# Ensure the module path includes the current directory for imports
+module_name = os.path.basename(os.path.dirname(__file__))  # Get the current folder name (e.g., ComfyUI-KGnodes)
+main_module = f"{module_name}.main"
+
+# Import everything from main.py dynamically
+main = __import__(main_module, fromlist=["*"])
 
 print("Initializing KG Nodes")
 
-
+# Dynamically build NODE_CLASS_MAPPINGS from all classes in main.py
 NODE_CLASS_MAPPINGS = {
-    "CustomResolutionLatentNode": CustomResolutionLatentNode,
-    "StyleSelector": StyleSelector,
+    cls_name: cls
+    for cls_name, cls in inspect.getmembers(main, inspect.isclass)
+    if cls.__module__ == main_module  # Ensure classes come from main.py
+}
+
+# Custom display names for nodes
+DISPLAY_NAME_OVERRIDES = {
+    "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
+    "StyleSelector": "Style Selector Node",
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "CustomResolutionLatentNode": "Custom Resolution Latent Node",
-    "StyleSelector": "Style Selector",
+    cls_name: DISPLAY_NAME_OVERRIDES.get(cls_name, " ".join(word.capitalize() for word in cls_name.split("_")))
+    for cls_name in NODE_CLASS_MAPPINGS
 }
-
