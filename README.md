@@ -5,19 +5,20 @@ A couple of ComfyUI custom nodes that I made for my projects
 
 ## Features
 
-Custom Resolution Latent Node:
+Custom Resolution Latent Node: <br>
+This node is specifically designed for use with SD 3.5 (of course, you can use it with other models like Flux). Users can select an aspect ratio and a target size of either 1MP or 2MP, and the node will then determine the optimal resolution for compatibility with SD3 models.
 
-This node is specifically designed for use with SD3. Users can select an aspect ratio and a target size of either 1MP or 2MP, and the node will then determine the optimal resolution for compatibility with SD3 models.
-
-![image](https://github.com/user-attachments/assets/5faa7584-9a8c-43fb-9a81-a17dbb98998a)
-
+![res](https://github.com/user-attachments/assets/df2e5f8c-94c7-41b9-b5d6-58c467dad866)
 
 
-Style Selector:
 
-This streamlined node leverages the A1111 Prompt Styler. While several nodes offer similar functionality, they typically require a find-and-replace node to parse the A1111 styles file. This node eliminates that requirement. Furthermore, it provides both positive and negative conditioning for enhanced control.
 
-![image](https://github.com/user-attachments/assets/c380c4d6-53c9-4ad9-bfac-66858c3794b9)
+Style Selector: <br>
+This streamlined node leverages the A1111 Prompt Styler. While several nodes offer similar functionality, they typically require a find-and-replace node to parse the A1111 styles file. This node eliminates that requirement. Furthermore, it provides both positive and negative conditioning for enhanced control.<br>
+In this node, the CLIP input is optional. If you connect the input CLIP, you get conditioning (+/-), and if not, you get only the positive and negative stylized prompt text output.
+
+![style](https://github.com/user-attachments/assets/46e76753-cc46-460f-b5c9-3f3e3882739a)
+
 
 
 
@@ -33,6 +34,6 @@ This streamlined node leverages the A1111 Prompt Styler. While several nodes off
 
 
 ## Acknowledgements
-Thanks to [twri](https://github.com/twri/sdxl_prompt_styler) for SDXL Prompt Styler Node, [chibiace](https://github.com/chibiace/ComfyUI-Chibi-Nodes) for Prompts Node and [ControlAltAI](https://github.com/gseth/ControlAltAI-Nodes) for Flux Resolution Calculator.
+Thanks to [twri](https://github.com/twri/sdxl_prompt_styler) for SDXL Prompt Styler Node, [chibiace](https://github.com/chibiace/ComfyUI-Chibi-Nodes) for Prompts Node and [ControlAltAI](https://github.com/gseth/ControlAltAI-Nodes) for Flux Resolution Calc Node.
 
 
