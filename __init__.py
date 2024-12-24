@@ -1,3 +1,9 @@
+"""
+@author: ShahKoorosh
+@title: ComfyUI-KGnodes
+@nickname: KGnodes
+@description: This Custom node offers various experimental nodes to make it easier to use ComfyUI.
+"""
 import inspect
 import sys
 import os
