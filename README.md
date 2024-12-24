@@ -1,6 +1,6 @@
 # KGnodes
 
-A couple of ComfyUI custom nodes that I made for my projects
+This Custom node offers various experimental nodes to make it easier to use ComfyUI.
 
 
 ![image](https://github.com/user-attachments/assets/7887ddcf-43cd-4f83-9fd9-2ed04a6c9d2b)
