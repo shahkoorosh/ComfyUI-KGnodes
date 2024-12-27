@@ -29,6 +29,8 @@ In this node, the CLIP input is optional. If you connect the input CLIP, you get
 
 ## Installation
 
+Search for `KGnodes` in "Comfy Manager" or alternatively:
+
 1. Go to comfyUI custom_nodes folder, `ComfyUI/custom_nodes/`
    
 2. Clone the repository `git clone https://github.com/shahkoorosh/ComfyUI-KGnodes.git`
@@ -37,8 +39,10 @@ In this node, the CLIP input is optional. If you connect the input CLIP, you get
 
 4. Restart ComfyUI.
 
-
-
+The node resides under `Add Node/🎨KG`
+<br>
+<br>
+<br>
 
 ## Acknowledgements
 Thanks to [twri](https://github.com/twri/sdxl_prompt_styler) for SDXL Prompt Styler Node, [chibiace](https://github.com/chibiace/ComfyUI-Chibi-Nodes) for Prompts Node and [ControlAltAI](https://github.com/gseth/ControlAltAI-Nodes) for Flux Resolution Calc Node.
