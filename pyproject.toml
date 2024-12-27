@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-kgnodes"
+description = "NODES:Custom Resolution Latent Node, Style Selector\nThis Custom node offers various experimental nodes to make it easier to use ComfyUI."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["pillow", "numpy", "torch", "piexif"]
+
+[project.urls]
+Repository = "https://github.com/shahkoorosh/ComfyUI-KGnodes"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = "shahkoorosh"
+DisplayName = "ComfyUI-KGnodes"
+Icon = ""
