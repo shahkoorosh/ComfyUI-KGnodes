@@ -9,7 +9,8 @@ import sys
 import os
 
 # Ensure the module path includes the current directory for imports
-module_name = os.path.basename(os.path.dirname(__file__))  # Get the current folder name (e.g., ComfyUI-KGnodes)
+# Get the current folder name (e.g., ComfyUI-KGnodes)
+module_name = os.path.basename(os.path.dirname(__file__))
 main_module = f"{module_name}.main"
 
 # Import everything from main.py dynamically
@@ -28,9 +29,11 @@ NODE_CLASS_MAPPINGS = {
 DISPLAY_NAME_OVERRIDES = {
     "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
+    "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    cls_name: DISPLAY_NAME_OVERRIDES.get(cls_name, " ".join(word.capitalize() for word in cls_name.split("_")))
+    cls_name: DISPLAY_NAME_OVERRIDES.get(cls_name, " ".join(
+        word.capitalize() for word in cls_name.split("_")))
     for cls_name in NODE_CLASS_MAPPINGS
 }
