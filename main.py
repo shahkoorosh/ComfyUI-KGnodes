@@ -2,10 +2,14 @@ import os
 import json
 import math
 import torch
+import numpy as np
+from PIL import Image
+
 
 class BaseNode:
     def __init__(self):
         pass  # Minimal base class for all nodes
+
 
 class CustomResolutionLatentNode(BaseNode):
     """
@@ -15,7 +19,8 @@ class CustomResolutionLatentNode(BaseNode):
 
     def __init__(self):
         super().__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -32,7 +37,7 @@ class CustomResolutionLatentNode(BaseNode):
                 "custom_ratio": ("BOOLEAN", {"default": False, "label_on": "Enable", "label_off": "Disable"}),
             },
             "optional": {
-                "custom_aspect_ratio": ("STRING", {"default": "1:1"}),               
+                "custom_aspect_ratio": ("STRING", {"default": "1:1"}),
             }
         }
 
@@ -73,10 +78,12 @@ class CustomResolutionLatentNode(BaseNode):
 
         # Create the empty latent (batch_size = 1)
         batch_size = 1
-        latent = torch.zeros([batch_size, 4, height // 8, width // 8], device=self.device)
+        latent = torch.zeros(
+            [batch_size, 4, height // 8, width // 8], device=self.device)
 
         # Return the latent tensor and resolution
         return ({"samples": latent}, width, height)
+
 
 class StyleSelector(BaseNode):
     """
@@ -86,6 +93,7 @@ class StyleSelector(BaseNode):
       3) Merges user prompts with the selected style.
       4) Optionally encodes them into CONDITIONING with an available CLIP model.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -102,7 +110,8 @@ class StyleSelector(BaseNode):
             }
         ]
         """
-        styles = {"None": {"prompt": "{prompt}", "negative_prompt": ""}}  # Default style for bypassing.
+        styles = {"None": {"prompt": "{prompt}", "negative_prompt": ""}
+                  }  # Default style for bypassing.
         try:
             with open(styles_path, "r", encoding="utf-8") as f:
                 styles_data = json.load(f)
@@ -111,7 +120,8 @@ class StyleSelector(BaseNode):
                     prompt = style.get("prompt", "{prompt}")
                     negative_prompt = style.get("negative_prompt", "")
                     if name:
-                        styles[name] = {"prompt": prompt, "negative_prompt": negative_prompt}
+                        styles[name] = {"prompt": prompt,
+                                        "negative_prompt": negative_prompt}
         except Exception as e:
             print(f"Error loading styles.json: {e}")
         return styles
@@ -124,7 +134,8 @@ class StyleSelector(BaseNode):
         # Load the styles dictionary
         styles_path = os.path.abspath(
             os.path.join(
-                os.path.dirname(__file__),  # Get the directory where the script resides
+                # Get the directory where the script resides
+                os.path.dirname(__file__),
                 "styles.json"
             )
         )
@@ -166,7 +177,8 @@ class StyleSelector(BaseNode):
         """
 
         # Retrieve the selected style prompts
-        selected_style = self.styles_json.get(styles, {"prompt": "{prompt}", "negative_prompt": ""})
+        selected_style = self.styles_json.get(
+            styles, {"prompt": "{prompt}", "negative_prompt": ""})
         positive_pattern = selected_style["prompt"]
         negative_pattern = selected_style["negative_prompt"]
 
@@ -186,12 +198,14 @@ class StyleSelector(BaseNode):
         if clip:
             # Positive
             pos_tokens = clip.tokenize(final_positive_text)
-            pos_cond, pos_pooled = clip.encode_from_tokens(pos_tokens, return_pooled=True)
+            pos_cond, pos_pooled = clip.encode_from_tokens(
+                pos_tokens, return_pooled=True)
             positive_conditioning = [[pos_cond, {"pooled_output": pos_pooled}]]
 
             # Negative
             neg_tokens = clip.tokenize(final_negative_text)
-            neg_cond, neg_pooled = clip.encode_from_tokens(neg_tokens, return_pooled=True)
+            neg_cond, neg_pooled = clip.encode_from_tokens(
+                neg_tokens, return_pooled=True)
             negative_conditioning = [[neg_cond, {"pooled_output": neg_pooled}]]
 
             return (
@@ -211,12 +225,108 @@ class StyleSelector(BaseNode):
                 final_negative_text,
             )
 
+
+class OverlayRGBAonRGB(BaseNode):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "Background(RGB)": ("IMAGE",),
+                "Foreground(RGBA)": ("IMAGE",),
+                "Foreground Opacity": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "display": "slider"
+                }),
+                "Output Mode": (["RGB", "RGBA"], {"default": "RGB"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "overlay_images"
+    CATEGORY = "🎨KG"
+    OUTPUT_NODE = True
+
+    def overlay_images(self, **kwargs):
+        """
+        Overlay foreground image (RGBA/RGB) onto background (RGB), with opacity control.
+        Uses **kwargs for input parameter handling.
+        """
+        # Extract parameters from kwargs
+        background_image = kwargs.get("Background(RGB)")
+        foreground_image = kwargs.get("Foreground(RGBA)")
+        foreground_opacity = kwargs.get(
+            "Foreground Opacity", 1.0)  # Default to 1.0 if missing
+        # Default to RGB if missing
+        output_mode = kwargs.get("Output Mode", "RGB")
+
+        # Validate required inputs
+        if background_image is None or foreground_image is None:
+            raise ValueError(
+                "Both background_image and foreground_image are required")
+
+        # Validate tensor dimensions
+        if background_image.ndim != 4 or foreground_image.ndim != 4:
+            raise ValueError("Input tensors must be 4D: (B, H, W, C)")
+
+        # Clamp opacity to valid range
+        foreground_opacity = max(0.0, min(1.0, foreground_opacity))
+
+        # Batch processing
+        output_images = []
+        for bg_tensor, fg_tensor in zip(background_image, foreground_image):
+            # Convert tensors to numpy arrays (H, W, C)
+            bg_np = bg_tensor.numpy().squeeze(0) if bg_tensor.dim() == 4 else bg_tensor.numpy()
+            fg_np = fg_tensor.numpy().squeeze(0) if fg_tensor.dim() == 4 else fg_tensor.numpy()
+
+            # Ensure background is RGB
+            if bg_np.shape[-1] == 4:
+                bg_np = bg_np[..., :3]  # Remove alpha channel if present
+            bg_pil = Image.fromarray(
+                (bg_np * 255).astype(np.uint8)).convert("RGBA")
+
+            # Process foreground alpha
+            if fg_np.shape[-1] == 3:
+                # Add alpha channel with specified opacity
+                alpha = np.full(
+                    fg_np.shape[:2] + (1,), foreground_opacity, dtype=np.float32)
+                fg_np = np.concatenate([fg_np, alpha], axis=-1)
+            else:
+                # Multiply existing alpha by opacity
+                fg_np = fg_np.copy()
+                fg_np[..., 3] = fg_np[..., 3] * foreground_opacity
+
+            fg_pil = Image.fromarray(
+                (fg_np * 255).astype(np.uint8)).convert("RGBA")
+
+            # Alpha compositing
+            composite_pil = Image.alpha_composite(bg_pil, fg_pil)
+            composite_np = np.array(composite_pil).astype(np.float32) / 255.0
+
+            # Format output
+            if output_mode == "RGB":
+                composite_np = composite_np[..., :3]
+
+            output_images.append(torch.from_numpy(composite_np).unsqueeze(0))
+
+        return (torch.cat(output_images, dim=0),)
+
+
+# Mapping of node class names to their respective classes
 NODE_CLASS_MAPPINGS = {
     "CustomResolutionLatentNode": CustomResolutionLatentNode,
     "StyleSelector": StyleSelector,
+    "OverlayRGBAonRGB": OverlayRGBAonRGB,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
+    "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
 }
