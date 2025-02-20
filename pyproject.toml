@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-kgnodes"
-description = "NODES:Custom Resolution Latent Node, Style Selector\nThis Custom node offers various experimental nodes to make it easier to use ComfyUI."
+description = "NODES:Custom Resolution Latent Node, Style Selector, Image Overlay\nThis Custom node offers various experimental nodes to make it easier to use ComfyUI."
 version = "1.1.0"
 license = {file = "LICENSE"}
 dependencies = ["pillow", "numpy", "torch", "piexif"]
