@@ -1,6 +1,6 @@
 # KGnodes
 
-This Custom node offers various experimental nodes to make it easier to use ComfyUI.
+This Custom node offers various nodes to make it easier to use ComfyUI.
 
 
 ![image](https://github.com/user-attachments/assets/7887ddcf-43cd-4f83-9fd9-2ed04a6c9d2b)
@@ -21,6 +21,28 @@ This streamlined node leverages the A1111 Prompt Styler. While several nodes off
 In this node, the CLIP input is optional. If you connect the input CLIP, you get conditioning (+/-), and if not, you get only the positive and negative stylized prompt text output.
 
 ![style](https://github.com/user-attachments/assets/46e76753-cc46-460f-b5c9-3f3e3882739a)
+
+
+
+
+Image Overlay: RGBA on RGB <br>
+This node overlays a foreground image (RGBA or RGB) onto a background image (RGB), preserving transparency and allowing control over the foreground's opacity. The foreground image's alpha channel is used to blend it seamlessly with the background. If the foreground is RGB, an alpha channel is automatically added based on the specified opacity. The output can be either RGB or RGBA, depending on your needs.
+
+Key Features:<br>
+Supports both RGBA and RGB foreground images.
+Adjustable foreground opacity (0.0 to 1.0).
+Outputs in RGB or RGBA format.
+Handles batch processing for multiple images.
+
+Requirements:<br>
+Both the foreground and background images must be the same size (height and width) for proper compositing.
+Input tensors should be in the format (B, H, W, C), where:
+B = Batch size
+H = Height
+W = Width
+C = Channels (3 for RGB, 4 for RGBA)
+
+![image](https://github.com/user-attachments/assets/33e1acf7-e3df-442b-9155-b998865dc987)
 
 
 
