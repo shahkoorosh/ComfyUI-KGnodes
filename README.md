@@ -44,11 +44,16 @@ C = Channels (3 for RGB, 4 for RGBA)
 
 ![image](https://github.com/user-attachments/assets/33e1acf7-e3df-442b-9155-b998865dc987)
 
+<br>
+TextBehindImage Node: <br>
+The TextBehindImage node is a specialized tool for creating layered compositions in ComfyUI, designed to place text or graphics between the subject and the background of an image. This node is perfect for scenarios where you want to insert text or design elements behind the main subject while keeping the subject prominently visible on top.
+<br>
 
 
+![image](https://github.com/user-attachments/assets/9870bae3-8bc3-4314-9c91-57638ea0f7b1)
 
-
-
+<br>
+<br>
 ## Installation
 
 Search for `KGnodes` in "Comfy Manager" or alternatively:
