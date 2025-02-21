@@ -6,7 +6,7 @@ This Custom node offers various nodes to make it easier to use ComfyUI.
 ![image](https://github.com/user-attachments/assets/7887ddcf-43cd-4f83-9fd9-2ed04a6c9d2b)
 
 
-## Features
+## List of the nodes:
 
 ### Custom Resolution Latent Node: <br>
 This node is specifically designed for use with SD 3.5 (of course, you can use it with other models like Flux). Users can select an aspect ratio and a target size of either 1MP or 2MP, and the node will then determine the optimal resolution for compatibility with SD3 models.
@@ -46,7 +46,7 @@ C = Channels (3 for RGB, 4 for RGBA)
 
 <br>
 
-### TextBehindImage Node: <br>
+### Text Behind Image <br>
 The TextBehindImage node is a specialized tool for creating layered compositions in ComfyUI, designed to place text or graphics between the subject and the background of an image. This node is perfect for scenarios where you want to insert text or design elements behind the main subject while keeping the subject prominently visible on top.
 <br>
 
