@@ -30,6 +30,7 @@ DISPLAY_NAME_OVERRIDES = {
     "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
+    "TextBehindImage": "Text Behind Image",
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
