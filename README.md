@@ -16,7 +16,7 @@ This node is specifically designed for use with SD 3.5 (of course, you can use i
 
 
 
-### Style Selector: <br>
+### Style Selector <br>
 This streamlined node leverages the A1111 Prompt Styler. While several nodes offer similar functionality, they typically require a find-and-replace node to parse the A1111 styles file. This node eliminates that requirement. Furthermore, it provides both positive and negative conditioning for enhanced control.<br>
 In this node, the CLIP input is optional. If you connect the input CLIP, you get conditioning (+/-), and if not, you get only the positive and negative stylized prompt text output.
 
@@ -45,6 +45,7 @@ C = Channels (3 for RGB, 4 for RGBA)
 ![image](https://github.com/user-attachments/assets/33e1acf7-e3df-442b-9155-b998865dc987)
 
 <br>
+
 ### TextBehindImage Node: <br>
 The TextBehindImage node is a specialized tool for creating layered compositions in ComfyUI, designed to place text or graphics between the subject and the background of an image. This node is perfect for scenarios where you want to insert text or design elements behind the main subject while keeping the subject prominently visible on top.
 <br>
@@ -54,6 +55,7 @@ The TextBehindImage node is a specialized tool for creating layered compositions
 
 <br>
 <br>
+
 ## Installation
 
 Search for `KGnodes` in "Comfy Manager" or alternatively:
