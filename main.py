@@ -4,6 +4,7 @@ import math
 import torch
 import numpy as np
 from PIL import Image
+import torch.nn.functional as F
 
 
 class BaseNode:
@@ -318,15 +319,109 @@ class OverlayRGBAonRGB(BaseNode):
         return (torch.cat(output_images, dim=0),)
 
 
+
+class TextBehindImage(BaseNode):
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "Background": ("IMAGE",),
+                "Text Image": ("IMAGE",),
+                "Text Mask": ("MASK",),
+                "Foreground (RGBA)": ("IMAGE",),
+                "Foreground Opacity": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "display": "slider"
+                }),
+                "Text Image Opacity": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "max": 1.0,
+                    "step": 0.01,
+                    "display": "slider"
+                }),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "overlay_images"
+    CATEGORY = "🎨KG"
+    OUTPUT_NODE = True
+
+    def overlay_images(self, **kwargs):
+        # Extract inputs and convert to [B, C, H, W] format
+        background = kwargs["Background"].movedim(-1, 1)
+        text_image = kwargs["Text Image"].movedim(-1, 1)
+        text_mask = kwargs["Text Mask"].unsqueeze(1)
+        foreground = kwargs["Foreground (RGBA)"].movedim(-1, 1)
+        fg_opacity = kwargs["Foreground Opacity"]
+        text_opacity = kwargs["Text Image Opacity"]
+
+        # Get background dimensions
+        B, _, H, W = background.shape
+
+        # Process text layer
+        text_layer = self.process_text_layer(
+            text_image, text_mask, text_opacity, H, W)
+
+        # Process foreground
+        fg_layer = self.process_foreground(foreground, fg_opacity, H, W)
+
+        # Composite layers in correct order
+        composite = self.alpha_composite(
+            text_layer, background)  # 1. Text over background
+        # 2. Foreground over text+background
+        composite = self.alpha_composite(fg_layer, composite)
+
+        # Convert to [B, H, W, C] and remove alpha channel
+        output_image = composite[:, :3].movedim(1, -1)
+
+        return (output_image,)
+
+    def process_text_layer(self, text_img, text_mask, opacity, H, W):
+        # Resize text image
+        text_img = F.interpolate(
+            text_img, (H, W), mode='bilinear', align_corners=False)
+
+        # Resize mask and create alpha channel
+        text_mask = F.interpolate(
+            text_mask, (H, W), mode='bilinear', align_corners=False)
+        alpha = text_mask * opacity
+
+        return torch.cat([text_img[:, :3], alpha], dim=1)
+
+    def process_foreground(self, fg, opacity, H, W):
+        # Resize foreground and apply opacity
+        fg = F.interpolate(fg, (H, W), mode='bilinear', align_corners=False)
+        fg[:, 3:] *= opacity  # Modify alpha channel directly
+        return fg
+
+    def alpha_composite(self, fg, bg):
+        """Blend foreground over background using alpha compositing"""
+        alpha = fg[:, 3:]
+        blended_rgb = fg[:, :3] * alpha + bg[:, :3] * (1 - alpha)
+        return torch.cat([blended_rgb, alpha], dim=1)
+
+
+
 # Mapping of node class names to their respective classes
 NODE_CLASS_MAPPINGS = {
     "CustomResolutionLatentNode": CustomResolutionLatentNode,
     "StyleSelector": StyleSelector,
     "OverlayRGBAonRGB": OverlayRGBAonRGB,
+    "TextBehindImage": TextBehindImage,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
+    "TextBehindImage": "Text Behind Image",
 }
