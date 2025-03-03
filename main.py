@@ -4,7 +4,6 @@ import math
 import torch
 import numpy as np
 from PIL import Image
-import torch.nn.functional as F
 
 
 class BaseNode:
@@ -319,96 +318,124 @@ class OverlayRGBAonRGB(BaseNode):
         return (torch.cat(output_images, dim=0),)
 
 
+class ImageScaleToSide(BaseNode):
+    """
+    A ComfyUI node that rescales an image based on either its longest or shortest side,
+    while maintaining the aspect ratio.
+    """
 
-class TextBehindImage(BaseNode):
     def __init__(self):
         pass
 
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(cls):
         return {
             "required": {
-                "Background": ("IMAGE",),
-                "Text Image": ("IMAGE",),
-                "Text Mask": ("MASK",),
-                "Foreground (RGBA)": ("IMAGE",),
-                "Foreground Opacity": ("FLOAT", {
-                    "default": 1.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "step": 0.01,
-                    "display": "slider"
-                }),
-                "Text Image Opacity": ("FLOAT", {
-                    "default": 1.0,
-                    "min": 0.0,
-                    "max": 1.0,
-                    "step": 0.01,
-                    "display": "slider"
-                }),
+                "Image": ("IMAGE", {"tooltip": "The input image to be rescaled."}),
             },
+            "optional": {
+                "Longest Side": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 1,
+                                         "tooltip": "Target size for the longest side. 0 to ignore."}),
+                "Shortest Side": ("INT", {"default": 0, "min": 0, "max": 8192, "step": 1,
+                                          "tooltip": "Target size for the shortest side. 0 to ignore."}),
+            }
         }
 
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
-    FUNCTION = "overlay_images"
+    FUNCTION = "rescale_image"
     CATEGORY = "🎨KG"
-    OUTPUT_NODE = True
 
-    def overlay_images(self, **kwargs):
-        # Extract inputs and convert to [B, C, H, W] format
-        background = kwargs["Background"].movedim(-1, 1)
-        text_image = kwargs["Text Image"].movedim(-1, 1)
-        text_mask = kwargs["Text Mask"].unsqueeze(1)
-        foreground = kwargs["Foreground (RGBA)"].movedim(-1, 1)
-        fg_opacity = kwargs["Foreground Opacity"]
-        text_opacity = kwargs["Text Image Opacity"]
+    def rescale_image(self, **kwargs):
+        MAX_DIMENSION = 8192
+        image = kwargs.get("Image")
+        longest_side = int(kwargs.get("Longest Side", 0))
+        shortest_side = int(kwargs.get("Shortest Side", 0))
 
-        # Get background dimensions
-        B, _, H, W = background.shape
+        if longest_side == 0 and shortest_side == 0:
+            return (image,)
 
-        # Process text layer
-        text_layer = self.process_text_layer(
-            text_image, text_mask, text_opacity, H, W)
+        # Handle batch dimension
+        batch_size, orig_h, orig_w, channels = image.shape
+        img = image[0] if batch_size > 1 else image.squeeze(0)
 
-        # Process foreground
-        fg_layer = self.process_foreground(foreground, fg_opacity, H, W)
+        # Get dimensions
+        height, width, channels = img.shape
+        print(f"Image dimensions: {width}x{height}")
 
-        # Composite layers in correct order
-        composite = self.alpha_composite(
-            text_layer, background)  # 1. Text over background
-        # 2. Foreground over text+background
-        composite = self.alpha_composite(fg_layer, composite)
+        # Check for latent or non-standard formats
+        if width <= 1 and height <= 1 and channels > 3:
+            print("WARNING: Unusual image format detected")
+            return (image,)
 
-        # Convert to [B, H, W, C] and remove alpha channel
-        output_image = composite[:, :3].movedim(1, -1)
+        # Determine target size
+        target_size = None
+        if longest_side > 0 and shortest_side > 0:
+            target_size = (max(longest_side, shortest_side),
+                           'longest' if longest_side >= shortest_side else 'shortest')
+        elif longest_side > 0:
+            target_size = (longest_side, 'longest')
+        elif shortest_side > 0:
+            target_size = (shortest_side, 'shortest')
 
-        return (output_image,)
+        if not target_size:
+            return (image,)
 
-    def process_text_layer(self, text_img, text_mask, opacity, H, W):
-        # Resize text image
-        text_img = F.interpolate(
-            text_img, (H, W), mode='bilinear', align_corners=False)
+        value, side_type = target_size
+        aspect_ratio = width / height
 
-        # Resize mask and create alpha channel
-        text_mask = F.interpolate(
-            text_mask, (H, W), mode='bilinear', align_corners=False)
-        alpha = text_mask * opacity
+        # Calculate new dimensions
+        if side_type == 'longest':
+            if width >= height:
+                new_w = value
+                new_h = max(1, int(round(height * (new_w / width))))
+            else:
+                new_h = value
+                new_w = max(1, int(round(width * (new_h / height))))
+        else:
+            if width <= height:
+                new_w = value
+                new_h = max(1, int(round(height * (new_w / width))))
+            else:
+                new_h = value
+                new_w = max(1, int(round(width * (new_h / height))))
 
-        return torch.cat([text_img[:, :3], alpha], dim=1)
+        new_w = max(1, min(new_w, MAX_DIMENSION))
+        new_h = max(1, min(new_h, MAX_DIMENSION))
 
-    def process_foreground(self, fg, opacity, H, W):
-        # Resize foreground and apply opacity
-        fg = F.interpolate(fg, (H, W), mode='bilinear', align_corners=False)
-        fg[:, 3:] *= opacity  # Modify alpha channel directly
-        return fg
+        try:
+            # Convert to [B, C, H, W] format for interpolation
+            img_batch = image.permute(0, 3, 1, 2).float()
 
-    def alpha_composite(self, fg, bg):
-        """Blend foreground over background using alpha compositing"""
-        alpha = fg[:, 3:]
-        blended_rgb = fg[:, :3] * alpha + bg[:, :3] * (1 - alpha)
-        return torch.cat([blended_rgb, alpha], dim=1)
+            resized_tensor = torch.nn.functional.interpolate(
+                img_batch,
+                size=(new_h, new_w),
+                mode='bicubic',
+                align_corners=False
+            )
 
+            # Convert back to [B, H, W, C] format
+            resized_tensor = resized_tensor.permute(0, 2, 3, 1)
+            return (resized_tensor,)
+
+        except Exception as e:
+            print(f"Torch resize failed: {e}, falling back to PIL")
+            try:
+                # Convert to PIL format
+                img_np = image.cpu().numpy() * 255
+                # Take first image in batch
+                img_np = img_np.astype(np.uint8)[0]
+                pil_image = Image.fromarray(img_np)
+
+                resized_pil = pil_image.resize((new_w, new_h), Image.LANCZOS)
+                resized_np = np.array(resized_pil).astype(np.float32) / 255.0
+                resized_np = np.expand_dims(
+                    resized_np, axis=0)  # Add batch dimension
+
+                return (torch.from_numpy(resized_np),)
+            except Exception as e2:
+                print(f"PIL resize failed: {e2}, returning original")
+                return (image,)
 
 
 # Mapping of node class names to their respective classes
@@ -416,12 +443,12 @@ NODE_CLASS_MAPPINGS = {
     "CustomResolutionLatentNode": CustomResolutionLatentNode,
     "StyleSelector": StyleSelector,
     "OverlayRGBAonRGB": OverlayRGBAonRGB,
-    "TextBehindImage": TextBehindImage,
+    "ImageScaleToSide": ImageScaleToSide,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
-    "TextBehindImage": "Text Behind Image",
+    "ImageScaleToSide": "Rescale Image To Side",
 }
