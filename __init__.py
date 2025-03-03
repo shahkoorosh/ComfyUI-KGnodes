@@ -2,7 +2,7 @@
 @author: ShahKoorosh
 @title: ComfyUI-KGnodes
 @nickname: KGnodes
-@description: This Custom node offers various experimental nodes to make it easier to use ComfyUI.
+@description: This Custom node pack offers various nodes to make it easier to use ComfyUI.
 """
 import inspect
 import sys
@@ -30,7 +30,7 @@ DISPLAY_NAME_OVERRIDES = {
     "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
-    "TextBehindImage": "Text Behind Image",
+    "ImageScaleToSide": "Rescale Image To Side",
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
