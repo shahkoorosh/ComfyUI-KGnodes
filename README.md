@@ -56,6 +56,24 @@ The TextBehindImage node is a specialized tool for creating layered compositions
 <br>
 <br>
 
+### Scale To Side <br>
+A ComfyUI custom node that rescales images based on either the longest or shortest side while preserving aspect ratio.
+
+Key Features <br>
+- Rescale images by specifying a target size for either the longest or shortest side
+- Preserves aspect ratio during rescaling
+- Uses optimal rescaling methods:
+  - Lanczos interpolation for upscaling
+  - Area interpolation for downscaling
+  - Flexible usage with optional inputs
+<br>
+<br>
+
+![image](https://github.com/user-attachments/assets/3a608676-2131-4935-8ccb-e73ab9abb361)
+
+<br>
+<br>
+
 ## Installation
 
 Search for `KGnodes` in "Comfy Manager" or alternatively:
