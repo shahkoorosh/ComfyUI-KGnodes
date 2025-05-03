@@ -31,6 +31,7 @@ DISPLAY_NAME_OVERRIDES = {
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
     "ImageScaleToSide": "Rescale Image To Side",
+    "FaceDetector": "Face Detector & Cropper"
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
