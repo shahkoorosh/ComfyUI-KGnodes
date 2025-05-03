@@ -1,5 +1,6 @@
 import os
 import json
+import cv2
 import math
 import torch
 import numpy as np
@@ -437,6 +438,157 @@ class ImageScaleToSide(BaseNode):
                 print(f"PIL resize failed: {e2}, returning original")
                 return (image,)
 
+class FaceDetector(BaseNode):
+    def __init__(self):
+        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "Image": ("IMAGE", {"tooltip": "The input image."}),
+                "Output Size": (["512x512", "768x768", "1024x1024"], {"tooltip": "The desired output resolution."}),
+                "Sharpening": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "The amount of sharpening to apply."}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "enhance_face"
+    CATEGORY = "🎨KG"
+
+    def enhance_face(self, **kwargs):
+        """
+        Detects faces in an image, crops them with padding, resizes, and applies sharpening.
+        """
+        image = kwargs.get("Image")
+        resize_to = kwargs.get("Output Size")
+        sharpness = kwargs.get("Sharpening")
+
+        # Ensure required inputs are provided
+        if image is None:
+            raise ValueError("Image is required but was not provided.")
+        if resize_to is None:
+            raise ValueError("Output Size is required but was not provided.")
+        if sharpness is None:
+            raise ValueError("Sharpening is required but was not provided.")
+
+        output_size = int(resize_to.split("x")[0])  # Extract size from "WxH" string
+
+        final_images = []
+        for img in image:  # Process each image in the batch
+            # Convert tensor to NumPy array
+            img_np = img.numpy() if isinstance(img, torch.Tensor) else img
+            img_cv = self.numpy_to_cv2(img_np)
+            faces = self.face_cascade.detectMultiScale(img_cv, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+            if len(faces) == 0:
+                print("No faces detected, returning original image.")
+                img_processed = self.cv2_to_numpy(img_cv)
+                final_images.append(img_processed)
+                continue
+
+            (x, y, w, h) = max(faces, key=lambda rect: rect[2] * rect[3])  # Select largest face
+            
+            # 1. Calculate the 1.5x scaled bounding box
+            scale_factor = 1.5
+            scaled_size = int(max(w, h) * scale_factor)
+            pad_x = (scaled_size - w) // 2
+            pad_y = (scaled_size - h) // 2
+            x1 = max(0, x - pad_x)
+            y1 = max(0, y - pad_y)
+            x2 = x1 + scaled_size
+            y2 = y1 + scaled_size
+
+            # Ensure the cropped region is within image bounds
+            img_height, img_width = img_cv.shape[:2]
+            x2 = min(img_width, x2)
+            y2 = min(img_height, y2)
+            x1 = max(0, x2 - scaled_size)  # Recalculate x1 to ensure correct size
+            y1 = max(0, y2 - scaled_size)  # Recalculate y1 to ensure correct size
+
+            # 2. Crop the face with padding
+            cropped_face = img_cv[y1:y2, x1:x2]
+
+            # 3. Resize the cropped face
+            scale = output_size / scaled_size
+            interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LANCZOS4
+            resized_face = cv2.resize(cropped_face, (output_size, output_size), interpolation=interpolation)
+
+            # 4. Sharpen the resized face
+            if sharpness > 0:
+                sharpened_face = self.sharpen_image(resized_face, sharpness)
+            else:
+                sharpened_face = resized_face
+
+            img_processed = self.cv2_to_numpy(sharpened_face)
+            final_images.append(img_processed)
+
+        output_image = torch.from_numpy(np.stack(final_images, axis=0))
+        return (output_image,)
+
+    def numpy_to_cv2(self, image):
+        """
+        Converts a NumPy image (HWC, RGB, float32, 0.0-1.0) to a CV2 image (HWC, BGR, uint8, 0-255).
+        """
+        img = np.clip(image * 255, 0, 255).astype(np.uint8)
+        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+    def cv2_to_numpy(self, image):
+        """
+        Converts a CV2 image (HWC, BGR, uint8, 0-255) to a NumPy image (HWC, RGB, float32, 0.0-1.0).
+        """
+        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        return img
+
+    def bilateral_unsharp_mask(self, image, strength):
+        """
+        Apply bilateral filter + unsharp masking with a single strength parameter.
+        
+        Args:
+            image: Input image (uint8, BGR or RGB).
+            strength: Sharpening strength (0.0 to 1.0).
+        
+        Returns:
+            Sharpened image (uint8).
+        """
+        # Fixed parameters for bilateral filter and unsharp mask
+        bilateral_d = 9           # Diameter of bilateral filter (neighborhood size)
+        bilateral_sigma = 75      # Sigma for color and space in bilateral filter
+        sigma = 1.5               # Gaussian blur radius for unsharp mask
+        
+        # Map strength (0.0-1.0) to a suitable range for unsharp masking (0.5-2.0)
+        mapped_strength = 0.5 + strength * 1.5
+        
+        # Apply bilateral filter to reduce noise while preserving edges
+        smoothed = cv2.bilateralFilter(image, d=bilateral_d, sigmaColor=bilateral_sigma, sigmaSpace=bilateral_sigma)
+        
+        # Convert to float for unsharp masking
+        smoothed = smoothed.astype(np.float32)
+        image = image.astype(np.float32)
+        
+        # Apply Gaussian blur to the smoothed image
+        blurred = cv2.GaussianBlur(smoothed, (0, 0), sigma)
+        
+        # Compute sharpened image: original + strength * (original - blurred)
+        sharpened = image + mapped_strength * (image - blurred)
+        
+        # Clip to valid uint8 range
+        sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+        return sharpened
+
+    def sharpen_image(self, img, strength):
+        """
+        Apply bilateral filter + unsharp masking for high-quality sharpening.
+        
+        Args:
+            img: Input image (OpenCV, uint8).
+            strength: Sharpening strength (0.0 to 1.0).
+        
+        Returns:
+            Sharpened image.
+        """
+        return self.bilateral_unsharp_mask(img, strength)
+
 
 # Mapping of node class names to their respective classes
 NODE_CLASS_MAPPINGS = {
@@ -444,6 +596,7 @@ NODE_CLASS_MAPPINGS = {
     "StyleSelector": StyleSelector,
     "OverlayRGBAonRGB": OverlayRGBAonRGB,
     "ImageScaleToSide": ImageScaleToSide,
+    "FaceDetector": FaceDetector,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -451,4 +604,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
     "ImageScaleToSide": "Rescale Image To Side",
+    "FaceDetector": "Face Detector & Cropper",
 }
