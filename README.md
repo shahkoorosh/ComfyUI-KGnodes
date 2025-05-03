@@ -29,10 +29,10 @@ In this node, the CLIP input is optional. If you connect the input CLIP, you get
 This node overlays a foreground image (RGBA or RGB) onto a background image (RGB), preserving transparency and allowing control over the foreground's opacity. The foreground image's alpha channel is used to blend it seamlessly with the background. If the foreground is RGB, an alpha channel is automatically added based on the specified opacity. The output can be either RGB or RGBA, depending on your needs.
 
 Key Features:<br>
-Supports both RGBA and RGB foreground images.
-Adjustable foreground opacity (0.0 to 1.0).
-Outputs in RGB or RGBA format.
-Handles batch processing for multiple images.
+- Supports both RGBA and RGB foreground images.
+- Adjustable foreground opacity (0.0 to 1.0).
+- Outputs in RGB or RGBA format.
+- Handles batch processing for multiple images.
 
 Requirements:<br>
 Both the foreground and background images must be the same size (height and width) for proper compositing.
@@ -70,6 +70,25 @@ Key Features <br>
 <br>
 
 ![image](https://github.com/user-attachments/assets/3a608676-2131-4935-8ccb-e73ab9abb361)
+
+<br>
+<br>
+
+### Face Detector & Cropper <br>
+The FaceDetector is a custom node for ComfyUI, designed to detect faces in images, crop them with padding, resize to a specified resolution, and apply high-quality sharpening. It leverages OpenCV’s Haar Cascade Classifier for face detection and a sophisticated bilateral filter + unsharp masking technique for sharpening, making it ideal for face-focused image processing workflows.
+
+
+
+Key Features <br>
+
+- Face Detection: Automatically detects the largest face in an image using OpenCV’s Haar Cascade Classifier.
+- Cropped Output: Crops the detected face with 1.5x padding to include surrounding context.
+- Resizable Output: Resizes the cropped face to user-specified resolutions (512x512, 768x768, or 1024x1024).
+- High-Quality Sharpening: Applies a bilateral filter for noise reduction followed by unsharp masking for crisp, natural-looking edge enhancement, controlled by a single strength parameter (0.0 to 1.0).
+- Batch Processing: Supports processing multiple images in a single run.
+
+
+
 
 <br>
 <br>
