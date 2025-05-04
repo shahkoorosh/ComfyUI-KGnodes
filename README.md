@@ -87,7 +87,10 @@ Key Features <br>
 - High-Quality Sharpening: Applies a bilateral filter for noise reduction followed by unsharp masking for crisp, natural-looking edge enhancement, controlled by a single strength parameter (0.0 to 1.0).
 - Batch Processing: Supports processing multiple images in a single run.
 
+<br>
+<br>
 
+![image](https://github.com/user-attachments/assets/ad43d658-d6af-46b0-8d7e-91d01843bf19)
 
 
 <br>
