@@ -4,38 +4,69 @@
 @nickname: KGnodes
 @description: This Custom node pack offers various nodes to make it easier to use ComfyUI.
 """
-import inspect
-import sys
+
+import importlib
 import os
+import sys
+from pathlib import Path
 
-# Ensure the module path includes the current directory for imports
-# Get the current folder name (e.g., ComfyUI-KGnodes)
-module_name = os.path.basename(os.path.dirname(__file__))
-main_module = f"{module_name}.main"
+# ANSI escape codes for colors
+BLACK = "\033[30m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+WHITE = "\033[37m"
+RESET = "\033[0m"
 
-# Import everything from main.py dynamically
-main = __import__(main_module, fromlist=["*"])
+# Global mappings expected by ComfyUI
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}
 
-print("Initializing KG Nodes")
+# Canonical module flag to prevent double-loading
+_init_flag = "__KGnodes_initialized__"
+if _init_flag in sys.modules:
+    pass  # Already initialized
+else:
+    sys.modules[_init_flag] = True
 
-# Dynamically build NODE_CLASS_MAPPINGS from all classes in main.py
-NODE_CLASS_MAPPINGS = {
-    cls_name: cls
-    for cls_name, cls in inspect.getmembers(main, inspect.isclass)
-    if cls.__module__ == main_module  # Ensure classes come from main.py
-}
+    def print_colored_bordered(text, text_color, border_color):
+        """Print a centered header with a colored border."""
+        lines = text.split('\n')
+        max_line_length = max(len(line) for line in lines)
+        border = f"{border_color}{'─' * (max_line_length + 4)}{RESET}"
+        print(f"\n{border}", flush=True)
+        for line in lines:
+            print(f"{border_color}│ {RESET}{text_color}{line.center(max_line_length)}{RESET}{border_color} │{RESET}", flush=True)
+        print(f"{border}\n", flush=True)
 
-# Custom display names for nodes
-DISPLAY_NAME_OVERRIDES = {
-    "CustomResolutionLatentNode": "SD 3.5 Perfect Resolution",
-    "StyleSelector": "Style Selector Node",
-    "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
-    "ImageScaleToSide": "Rescale Image To Side",
-    "FaceDetector": "Face Detector & Cropper"
-}
+    def print_message(message, color):
+        """Print a message with the specified color."""
+        print(f"{color}{message}{RESET}", flush=True)
 
-NODE_DISPLAY_NAME_MAPPINGS = {
-    cls_name: DISPLAY_NAME_OVERRIDES.get(cls_name, " ".join(
-        word.capitalize() for word in cls_name.split("_")))
-    for cls_name in NODE_CLASS_MAPPINGS
-}
+    # Print banner
+    print_colored_bordered("ComfyUI-KGnodes Initialization", YELLOW, CYAN)
+
+    # Load node files
+    current_dir = Path(__file__).parent
+    for filename in os.listdir(current_dir):
+        if filename.endswith(".py") and filename != "__init__.py":
+            module_name = f"{current_dir.stem}.{filename[:-3]}"
+            try:
+                node_module = importlib.import_module(module_name)
+                if hasattr(node_module, "NODE_CLASS_MAPPINGS"):
+                    NODE_CLASS_MAPPINGS.update(node_module.NODE_CLASS_MAPPINGS)
+                if hasattr(node_module, "NODE_DISPLAY_NAME_MAPPINGS"):
+                    NODE_DISPLAY_NAME_MAPPINGS.update(
+                        node_module.NODE_DISPLAY_NAME_MAPPINGS)
+            except Exception as e:
+                print_message(f"Error loading {module_name}: {e}", RED)
+
+    # Print loaded node display names
+    print_message("Loaded custom nodes:", GREEN)
+    for display_name in NODE_DISPLAY_NAME_MAPPINGS.values():
+        print_message(display_name, CYAN)
+
+    print("\n", flush=True)
