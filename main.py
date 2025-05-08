@@ -685,7 +685,7 @@ class FaceDetectorAndCropper(BaseNode):
         return self.bilateral_unsharp_mask(img, strength)
 
 
-class TextBehindImage(BaceNode):
+class TextBehindImage(BaseNode):
     def __init__(self):
         pass
 
