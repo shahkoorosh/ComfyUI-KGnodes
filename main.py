@@ -137,6 +137,7 @@ class StyleSelector(BaseNode):
             os.path.join(
                 # Get the directory where the script resides
                 os.path.dirname(__file__),
+                "assets",
                 "styles.json"
             )
         )
@@ -147,11 +148,11 @@ class StyleSelector(BaseNode):
             "required": {
                 "Positive": (
                     "STRING",
-                    {"default": "", "multiline": True},
+                    {"forceinput": True},
                 ),
                 "Negative": (
                     "STRING",
-                    {"default": "", "multiline": True},
+                    {"forceinput": True},
                 ),
                 "styles": (style_options, {"default": "None"}),
             },
@@ -438,140 +439,234 @@ class ImageScaleToSide(BaseNode):
                 print(f"PIL resize failed: {e2}, returning original")
                 return (image,)
 
-class FaceDetector(BaseNode):
-    def __init__(self):
-        self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
+class FaceDetectorAndCropper(BaseNode):
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "Image": ("IMAGE", {"tooltip": "The input image."}),
-                "Output Size": (["512x512", "768x768", "1024x1024"], {"tooltip": "The desired output resolution."}),
-                "Sharpening": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "The amount of sharpening to apply."}),
+                "Image": ("IMAGE",),
+                "Output Size": (
+                    ["1024x1024", "768x768", "512x512", "256x256"],
+                    {
+                        "default": "1024x1024",
+                        "tooltip": "Final square resolution of the cropped face image (e.g., 1024x1024). Determines the output size after face detection and cropping."
+                    },
+                ),
+                "Sharpening": (
+                    "FLOAT",
+                    {
+                        "default": 0.0,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.01,
+                        "tooltip": "Controls the intensity of image sharpening applied to the cropped face. 0.0 means no sharpening, 1.0 is maximum sharpening using bilateral filter and unsharp masking."
+                    }
+                ),
+                "Zoom": (
+                    "FLOAT",
+                    {
+                        "default": 0.4,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.1,
+                        "tooltip": "Adjusts the padding around the detected face. Lower values (e.g., 0.0) crop tightly to the face, higher values (e.g., 1.0) include more surrounding area."
+                    }
+                ),
+                "Detection Accuracy": (
+                    "FLOAT",
+                    {
+                        "default": 0.5,
+                        "min": 0.0,
+                        "max": 1.0,
+                        "step": 0.01,
+                        "tooltip": "Sets the confidence threshold for face detection. Lower values (e.g., 0.0) detect more faces but may include false positives; higher values (e.g., 1.0) are stricter, detecting only high-confidence faces."
+                    }
+                ),
             }
         }
 
     RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "enhance_face"
+    FUNCTION = "detect_and_crop_face"
     CATEGORY = "🎨KG"
 
-    def enhance_face(self, **kwargs):
-        """
-        Detects faces in an image, crops them with padding, resizes, and applies sharpening.
-        """
+    def detect_and_crop_face(self, **kwargs):
         image = kwargs.get("Image")
         resize_to = kwargs.get("Output Size")
-        sharpness = kwargs.get("Sharpening")
+        sharpness = kwargs.get("Sharpening", 0.0)
+        zoom = kwargs.get("Zoom", 0.4)
+        confidence_threshold = kwargs.get("Detection Accuracy", 0.5)
 
-        # Ensure required inputs are provided
-        if image is None:
-            raise ValueError("Image is required but was not provided.")
-        if resize_to is None:
-            raise ValueError("Output Size is required but was not provided.")
-        if sharpness is None:
-            raise ValueError("Sharpening is required but was not provided.")
+        # Convert tensor to numpy if needed
+        if isinstance(image, list):
+            image = image[0]
+        if isinstance(image, torch.Tensor):
+            image = image.detach().cpu().numpy()
 
-        output_size = int(resize_to.split("x")[0])  # Extract size from "WxH" string
+        # Handle shape: (C, H, W) or (1, H, W, 3) and scale to [0,255]
+        if image.shape[0] == 3:  # CHW format
+            image_np = np.transpose(image, (1, 2, 0)) * 255.0
+        # BHWC format
+        elif len(image.shape) == 4 and image.shape[0] == 1 and image.shape[3] == 3:
+            image_np = image[0] * 255.0
+        else:
+            raise ValueError(f"Unexpected image shape: {image.shape}")
 
-        final_images = []
-        for img in image:  # Process each image in the batch
-            # Convert tensor to NumPy array
-            img_np = img.numpy() if isinstance(img, torch.Tensor) else img
-            img_cv = self.numpy_to_cv2(img_np)
-            faces = self.face_cascade.detectMultiScale(img_cv, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+        # Convert to uint8 immediately to avoid depth issues
+        image_np = np.clip(image_np, 0, 255).astype(np.uint8)
 
-            if len(faces) == 0:
-                print("No faces detected, returning original image.")
-                img_processed = self.cv2_to_numpy(img_cv)
-                final_images.append(img_processed)
-                continue
+        # Convert RGB to BGR for OpenCV face detection
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
 
-            (x, y, w, h) = max(faces, key=lambda rect: rect[2] * rect[3])  # Select largest face
-            
-            # 1. Calculate the 1.5x scaled bounding box
-            scale_factor = 1.5
-            scaled_size = int(max(w, h) * scale_factor)
-            pad_x = (scaled_size - w) // 2
-            pad_y = (scaled_size - h) // 2
-            x1 = max(0, x - pad_x)
-            y1 = max(0, y - pad_y)
-            x2 = x1 + scaled_size
-            y2 = y1 + scaled_size
+        h, w = image_np.shape[:2]
 
-            # Ensure the cropped region is within image bounds
-            img_height, img_width = img_cv.shape[:2]
-            x2 = min(img_width, x2)
-            y2 = min(img_height, y2)
-            x1 = max(0, x2 - scaled_size)  # Recalculate x1 to ensure correct size
-            y1 = max(0, y2 - scaled_size)  # Recalculate y1 to ensure correct size
+        # Load face detector from assets
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        prototxt = os.path.join(base_dir, "assets", "deploy.prototxt")
+        model = os.path.join(base_dir, "assets",
+                             "res10_300x300_ssd_iter_140000.caffemodel")
 
-            # 2. Crop the face with padding
-            cropped_face = img_cv[y1:y2, x1:x2]
+        net = cv2.dnn.readNetFromCaffe(prototxt, model)
+        blob = cv2.dnn.blobFromImage(
+            image_np, 1.0, (300, 300), (104.0, 177.0, 123.0))
+        net.setInput(blob)
+        detections = net.forward()
 
-            # 3. Resize the cropped face
-            scale = output_size / scaled_size
-            interpolation = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LANCZOS4
-            resized_face = cv2.resize(cropped_face, (output_size, output_size), interpolation=interpolation)
+        # Collect all faces with confidence > confidence_threshold
+        faces = []
+        for i in range(detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
+            if confidence > confidence_threshold:
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                faces.append(box.astype("int"))
 
-            # 4. Sharpen the resized face
+        if not faces:
+            raise ValueError(
+                "No faces detected with the given confidence threshold.")
+
+        # Process each face
+        output_faces = []
+        initial_size = 1024
+        expansion_factor = zoom  # Controlled by the Zoom slider
+
+        for face_box in faces:
+            # Extract bounding box coordinates
+            x1, y1, x2, y2 = face_box
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(w, x2), min(h, y2)
+
+            # Expand the bounding box with padding based on Zoom
+            width = x2 - x1
+            height = y2 - y1
+            padx = int(width * expansion_factor)
+            pady = int(height * expansion_factor)
+
+            # Expand and clamp to image boundaries
+            new_x1 = max(0, x1 - padx)
+            new_y1 = max(0, y1 - pady)
+            new_x2 = min(w, x2 + padx)
+            new_y2 = min(h, y2 + pady)
+
+            # Crop the face region with padding
+            face_crop = image_np[new_y1:new_y2, new_x1:new_x2]
+
+            # Apply sharpening if specified (before resizing)
             if sharpness > 0:
-                sharpened_face = self.sharpen_image(resized_face, sharpness)
+                face_crop = self.sharpen_image(face_crop, sharpness)
+
+            # Scale to fit 1024x1024
+            crop_h, crop_w = face_crop.shape[:2]
+            if crop_w >= crop_h:
+                scaling_factor = initial_size / crop_h
+                new_h = initial_size
+                new_w = int(crop_w * scaling_factor)
             else:
-                sharpened_face = resized_face
+                scaling_factor = initial_size / crop_w
+                new_w = initial_size
+                new_h = int(crop_h * scaling_factor)
 
-            img_processed = self.cv2_to_numpy(sharpened_face)
-            final_images.append(img_processed)
+            # Convert to PIL Image for resizing
+            face_pil = Image.fromarray(
+                cv2.cvtColor(face_crop, cv2.COLOR_BGR2RGB))
 
-        output_image = torch.from_numpy(np.stack(final_images, axis=0))
-        return (output_image,)
+            # Resize to 1024x1024 using Pillow
+            face_resized = face_pil.resize((new_w, new_h), Image.LANCZOS)
 
-    def numpy_to_cv2(self, image):
-        """
-        Converts a NumPy image (HWC, RGB, float32, 0.0-1.0) to a CV2 image (HWC, BGR, uint8, 0-255).
-        """
-        img = np.clip(image * 255, 0, 255).astype(np.uint8)
-        return cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            # Convert back to NumPy
+            face_resized = np.array(face_resized)
+            face_resized = cv2.cvtColor(face_resized, cv2.COLOR_RGB2BGR)
 
-    def cv2_to_numpy(self, image):
-        """
-        Converts a CV2 image (HWC, BGR, uint8, 0-255) to a NumPy image (HWC, RGB, float32, 0.0-1.0).
-        """
-        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-        return img
+            # Crop to 1024x1024, centering the face
+            if new_h > initial_size:
+                start_h = (new_h - initial_size) // 2
+                face_resized = face_resized[start_h:start_h + initial_size, :]
+            if new_w > initial_size:
+                start_w = (new_w - initial_size) // 2
+                face_resized = face_resized[:, start_w:start_w + initial_size]
+
+            face_1024 = face_resized[:initial_size, :initial_size]
+
+            # Get final output size
+            out_w, out_h = map(int, resize_to.split("x"))
+            assert out_w == out_h, "Output size should be square"
+            out_size = out_w
+
+            # Resize to user-specified output size
+            if out_size != initial_size:
+                face_pil = Image.fromarray(
+                    cv2.cvtColor(face_1024, cv2.COLOR_BGR2RGB))
+                interpolation = Image.BOX if out_size < initial_size else Image.LANCZOS
+                face_resized = face_pil.resize(
+                    (out_size, out_size), interpolation)
+                face_resized = np.array(face_resized)
+                face_resized = cv2.cvtColor(face_resized, cv2.COLOR_RGB2BGR)
+
+            # Convert to RGB
+            face_output = cv2.cvtColor(face_resized, cv2.COLOR_BGR2RGB)
+
+            # Normalize to [0,1]
+            face_output = np.clip(face_output / 255.0, 0, 1)
+            output_faces.append(face_output)
+
+        # Stack faces into a batch
+        face_batched = np.stack(output_faces, axis=0)
+
+        return (torch.from_numpy(face_batched).float(),)
 
     def bilateral_unsharp_mask(self, image, strength):
         """
         Apply bilateral filter + unsharp masking with a single strength parameter.
-        
+
         Args:
             image: Input image (uint8, BGR or RGB).
             strength: Sharpening strength (0.0 to 1.0).
-        
+
         Returns:
             Sharpened image (uint8).
         """
         # Fixed parameters for bilateral filter and unsharp mask
-        bilateral_d = 9           # Diameter of bilateral filter (neighborhood size)
+        # Diameter of bilateral filter (neighborhood size)
+        bilateral_d = 9
         bilateral_sigma = 75      # Sigma for color and space in bilateral filter
         sigma = 1.5               # Gaussian blur radius for unsharp mask
-        
+
         # Map strength (0.0-1.0) to a suitable range for unsharp masking (0.5-2.0)
         mapped_strength = 0.5 + strength * 1.5
-        
+
         # Apply bilateral filter to reduce noise while preserving edges
-        smoothed = cv2.bilateralFilter(image, d=bilateral_d, sigmaColor=bilateral_sigma, sigmaSpace=bilateral_sigma)
-        
+        smoothed = cv2.bilateralFilter(
+            image, d=bilateral_d, sigmaColor=bilateral_sigma, sigmaSpace=bilateral_sigma)
+
         # Convert to float for unsharp masking
         smoothed = smoothed.astype(np.float32)
         image = image.astype(np.float32)
-        
+
         # Apply Gaussian blur to the smoothed image
         blurred = cv2.GaussianBlur(smoothed, (0, 0), sigma)
-        
+
         # Compute sharpened image: original + strength * (original - blurred)
         sharpened = image + mapped_strength * (image - blurred)
-        
+
         # Clip to valid uint8 range
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
         return sharpened
@@ -579,11 +674,11 @@ class FaceDetector(BaseNode):
     def sharpen_image(self, img, strength):
         """
         Apply bilateral filter + unsharp masking for high-quality sharpening.
-        
+
         Args:
             img: Input image (OpenCV, uint8).
             strength: Sharpening strength (0.0 to 1.0).
-        
+
         Returns:
             Sharpened image.
         """
@@ -596,7 +691,7 @@ NODE_CLASS_MAPPINGS = {
     "StyleSelector": StyleSelector,
     "OverlayRGBAonRGB": OverlayRGBAonRGB,
     "ImageScaleToSide": ImageScaleToSide,
-    "FaceDetector": FaceDetector,
+    "FaceDetectorAndCropper": FaceDetectorAndCropper,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -604,5 +699,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StyleSelector": "Style Selector Node",
     "OverlayRGBAonRGB": "Image Overlay: RGBA on RGB",
     "ImageScaleToSide": "Rescale Image To Side",
-    "FaceDetector": "Face Detector & Cropper",
+    "FaceDetectorAndCropper": "Face(s) Detector & Cropper",
 }
