@@ -12,4 +12,4 @@ Repository = "https://github.com/shahkoorosh/ComfyUI-KGnodes"
 [tool.comfy]
 PublisherId = "shahkoorosh"
 DisplayName = "ComfyUI-KGnodes"
-Icon = ""
+Icon = "https://raw.githubusercontent.com/shahkoorosh/ComfyUI-KGnodes/refs/heads/main/assets/icon.jpg"
