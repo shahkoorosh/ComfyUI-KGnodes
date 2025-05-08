@@ -2,3 +2,5 @@ pillow
 numpy
 torch
 piexif
+opencv-python
+torchvision
