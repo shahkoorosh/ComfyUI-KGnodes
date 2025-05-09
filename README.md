@@ -74,23 +74,29 @@ Key Features <br>
 <br>
 <br>
 
-### Face Detector & Cropper <br>
-The FaceDetector is a custom node for ComfyUI, designed to detect faces in images, crop them with padding, resize to a specified resolution, and apply high-quality sharpening. It leverages OpenCV’s Haar Cascade Classifier for face detection and a sophisticated bilateral filter + unsharp masking technique for sharpening, making it ideal for face-focused image processing workflows.
 
+### Face(s) Detector & Cropper <br>
 
+The **Face(s) Detector & Cropper** node is a simple and powerful tool for detecting and cropping faces from images in ComfyUI. It processes an input image, identifies faces, and outputs cleanly cropped face images ready for further use.
 
-Key Features <br>
+**Features** <br>
+- **Face Detection**: Automatically detects faces in an image with adjustable accuracy.
+- **Customizable Crop Size**: Choose from square output resolutions (256x256, 512x512, 768x768, or 1024x1024).
+- **Zoom Control**: Adjust the crop area to include more or less of the surrounding space around the face.
+- **Sharpening**: Enhance face details with customizable sharpening for crisp results.
+- **Multiple Face Support**: Detects and processes multiple faces in a single image.
 
-- Face Detection: Automatically detects the largest face in an image using OpenCV’s Haar Cascade Classifier.
-- Cropped Output: Crops the detected face with 1.5x padding to include surrounding context.
-- Resizable Output: Resizes the cropped face to user-specified resolutions (512x512, 768x768, or 1024x1024).
-- High-Quality Sharpening: Applies a bilateral filter for noise reduction followed by unsharp masking for crisp, natural-looking edge enhancement, controlled by a single strength parameter (0.0 to 1.0).
-- Batch Processing: Supports processing multiple images in a single run.
+**Use Cases** <br>
+- **IPAdapter (FaceID) or PuLID**: Extract a face from an image to use as a reference for face-based generation or editing.
+- **ReActor Face Swap**: Introduce multiple faces as inputs for face-swapping workflows.
+
+This node is perfect for anyone looking to streamline face extraction and enhance their ComfyUI projects with minimal effort.
 
 <br>
 <br>
 
-![image](https://github.com/user-attachments/assets/ad43d658-d6af-46b0-8d7e-91d01843bf19)
+![image](https://github.com/user-attachments/assets/989ff56b-90c1-4c4b-adc9-1c65db328eb0)
+
 
 
 <br>
