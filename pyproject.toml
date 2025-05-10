@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-KGnodes"
 description = "NODES:Custom Resolution Latent Node, Style Selector, Rescale Image To Side, Image Overlay, Text Behind Image, Face(s) Detector & Cropper.\n This Custom node pack offers various nodes to make it easier to use ComfyUI."
-version = "1.3.6"
+version = "1.4.0"
 license = {file = "LICENSE"}
 dependencies = ["pillow", "numpy", "torch", "piexif", "PIL", "cv2"]
 
@@ -12,4 +12,4 @@ Repository = "https://github.com/shahkoorosh/ComfyUI-KGnodes"
 [tool.comfy]
 PublisherId = "shahkoorosh"
 DisplayName = "ComfyUI-KGnodes"
-Icon = "https://raw.githubusercontent.com/shahkoorosh/ComfyUI-KGnodes/refs/heads/main/assets/icon.jpg"
+Icon = "https://github.com/user-attachments/assets/7e9df427-1de9-4d21-87f6-826b0f7d59dd"
