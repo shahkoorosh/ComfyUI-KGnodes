@@ -1,7 +1,7 @@
 [project]
 name = "ComfyUI-KGnodes"
 description = "NODES:Custom Resolution Latent Node, Style Selector, Rescale Image To Side, Image Overlay, Text Behind Image, Face(s) Detector & Cropper.\n This Custom node pack offers various nodes to make it easier to use ComfyUI."
-version = "1.4.0"
+version = "1.3.7"
 license = {file = "LICENSE"}
 dependencies = ["pillow", "numpy", "torch", "piexif", "PIL", "cv2"]
 
