@@ -473,7 +473,7 @@ class FaceDetectorAndCropper(BaseNode):
                         "tooltip": "Adjusts the padding around the detected face. Lower values (e.g., 0.0) crop tightly to the face, higher values (e.g., 1.0) include more surrounding area."
                     }
                 ),
-                "Detection Accuracy": (
+                "Face Detection Accuracy": (
                     "FLOAT",
                     {
                         "default": 0.5,
@@ -481,6 +481,20 @@ class FaceDetectorAndCropper(BaseNode):
                         "max": 1.0,
                         "step": 0.01,
                         "tooltip": "Sets the confidence threshold for face detection. Lower values (e.g., 0.0) detect more faces but may include false positives; higher values (e.g., 1.0) are stricter, detecting only high-confidence faces."
+                    }
+                ),
+                "Face Concat": (
+                    "BOOLEAN",
+                    {
+                        "default": False,
+                        "tooltip": "If True, concatenates all detected faces into a single image instead of returning a batch."
+                    }
+                ),
+                "Direction": (
+                    ["Right", "Down", "Left", "Up"],
+                    {
+                        "default": "Right",
+                        "tooltip": "Direction to concatenate faces when Face Concat is True."
                     }
                 ),
             }
@@ -495,7 +509,9 @@ class FaceDetectorAndCropper(BaseNode):
         resize_to = kwargs.get("Output Size")
         sharpness = kwargs.get("Sharpening", 0.0)
         zoom = kwargs.get("Zoom", 0.4)
-        confidence_threshold = kwargs.get("Detection Accuracy", 0.5)
+        confidence_threshold = kwargs.get("Face Detection Accuracy", 0.5)
+        face_concat = kwargs.get("Face Concat", False)
+        direction = kwargs.get("Direction", "Right")
 
         # Convert tensor to numpy if needed
         if isinstance(image, list):
@@ -547,7 +563,7 @@ class FaceDetectorAndCropper(BaseNode):
         # Process each face
         output_faces = []
         initial_size = 1024
-        expansion_factor = zoom  # Controlled by the Zoom slider
+        expansion_factor = zoom
 
         for face_box in faces:
             # Extract bounding box coordinates
@@ -628,61 +644,56 @@ class FaceDetectorAndCropper(BaseNode):
             face_output = np.clip(face_output / 255.0, 0, 1)
             output_faces.append(face_output)
 
-        # Stack faces into a batch
-        face_batched = np.stack(output_faces, axis=0)
+        # Convert to torch tensor
+        face_tensors = [torch.from_numpy(
+            face).float().unsqueeze(0) for face in output_faces]
 
-        return (torch.from_numpy(face_batched).float(),)
+        if not face_concat:
+            # Return batched tensor
+            face_batched = torch.cat(face_tensors, dim=0)
+            return (face_batched,)
+
+        # Concatenation logic for Face Concat = True
+        if len(face_tensors) == 1:
+            return (face_tensors[0],)
+
+        # Concatenate faces based on direction
+        result = face_tensors[0]
+        for img in face_tensors[1:]:
+            if direction in ["Right", "Left"]:
+                dim = 2  # Width
+                order = (img, result) if direction == "Left" else (result, img)
+            elif direction in ["Down", "Up"]:
+                dim = 1  # Height
+                order = (img, result) if direction == "Up" else (result, img)
+            result = torch.cat(order, dim=dim)
+
+        return (result,)
 
     def bilateral_unsharp_mask(self, image, strength):
         """
         Apply bilateral filter + unsharp masking with a single strength parameter.
-
-        Args:
-            image: Input image (uint8, BGR or RGB).
-            strength: Sharpening strength (0.0 to 1.0).
-
-        Returns:
-            Sharpened image (uint8).
         """
-        # Fixed parameters for bilateral filter and unsharp mask
-        # Diameter of bilateral filter (neighborhood size)
         bilateral_d = 9
-        bilateral_sigma = 75      # Sigma for color and space in bilateral filter
-        sigma = 1.5               # Gaussian blur radius for unsharp mask
-
-        # Map strength (0.0-1.0) to a suitable range for unsharp masking (0.5-2.0)
+        bilateral_sigma = 75
+        sigma = 1.5
         mapped_strength = 0.5 + strength * 1.5
 
-        # Apply bilateral filter to reduce noise while preserving edges
         smoothed = cv2.bilateralFilter(
             image, d=bilateral_d, sigmaColor=bilateral_sigma, sigmaSpace=bilateral_sigma)
-
-        # Convert to float for unsharp masking
         smoothed = smoothed.astype(np.float32)
         image = image.astype(np.float32)
-
-        # Apply Gaussian blur to the smoothed image
         blurred = cv2.GaussianBlur(smoothed, (0, 0), sigma)
-
-        # Compute sharpened image: original + strength * (original - blurred)
         sharpened = image + mapped_strength * (image - blurred)
-
-        # Clip to valid uint8 range
         sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
         return sharpened
 
     def sharpen_image(self, img, strength):
         """
         Apply bilateral filter + unsharp masking for high-quality sharpening.
-
-        Args:
-            img: Input image (OpenCV, uint8).
-            strength: Sharpening strength (0.0 to 1.0).
-
-        Returns:
-            Sharpened image.
         """
         return self.bilateral_unsharp_mask(img, strength)
+
 
 
 class TextBehindImage(BaseNode):
