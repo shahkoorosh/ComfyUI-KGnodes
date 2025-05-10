@@ -20,7 +20,8 @@ This node is specifically designed for use with SD 3.5 (of course, you can use i
 This streamlined node leverages the A1111 Prompt Styler. While several nodes offer similar functionality, they typically require a find-and-replace node to parse the A1111 styles file. This node eliminates that requirement. Furthermore, it provides both positive and negative conditioning for enhanced control.<br>
 In this node, the CLIP input is optional. If you connect the input CLIP, you get conditioning (+/-), and if not, you get only the positive and negative stylized prompt text output.
 
-![style](https://github.com/user-attachments/assets/46e76753-cc46-460f-b5c9-3f3e3882739a)
+![image](https://github.com/user-attachments/assets/5ff9a438-9f76-4311-ac96-d9ca087dd05b)
+
 
 
 
@@ -75,28 +76,30 @@ Key Features <br>
 <br>
 
 
-### Face(s) Detector & Cropper <br>
+### Face(s) Detector & Cropper
+The Face(s) Detector & Cropper node is a versatile tool for detecting and cropping faces from images in ComfyUI. It processes an input image, identifies faces, and outputs cropped face images, with an option to concatenate them into a single image.
 
-The **Face(s) Detector & Cropper** node is a simple and powerful tool for detecting and cropping faces from images in ComfyUI. It processes an input image, identifies faces, and outputs cleanly cropped face images ready for further use.
 
-**Features** <br>
-- **Face Detection**: Automatically detects faces in an image with adjustable accuracy.
-- **Customizable Crop Size**: Choose from square output resolutions (256x256, 512x512, 768x768, or 1024x1024).
-- **Zoom Control**: Adjust the crop area to include more or less of the surrounding space around the face.
-- **Sharpening**: Enhance face details with customizable sharpening for crisp results.
-- **Multiple Face Support**: Detects and processes multiple faces in a single image.
+**Features:** <br>  
+- **Face Detection**: Automatically detects faces with adjustable accuracy.  
+- **Customizable Crop Size**: Choose square output resolutions (256x256, 512x512, 768x768, or 1024x1024).  
+- **Zoom Control**: Adjust the crop area to include more or less surrounding space.  
+- **Sharpening**: Enhance face details with customizable sharpening.  
+- **Multiple Face Support**: Processes multiple faces in a single image.  
+- **Face Concatenation**: Optionally combine all detected faces into one image with customizable direction (Right, Down, Left, Up).
 
-**Use Cases** <br>
-- **IPAdapter (FaceID) or PuLID**: Extract a face from an image to use as a reference for face-based generation or editing.
-- **ReActor Face Swap**: Introduce multiple faces as inputs for face-swapping workflows.
+ 
+**Use Cases:** <br>
+**IPAdapter (FaceID) or PuLID**: Extract faces for face-based generation or editing.  
+**ReActor Face Swap**: Provide multiple faces for face-swapping workflows.  
+**Collage Creation**: Concatenate faces into a single image for creative projects.
 
-This node is perfect for anyone looking to streamline face extraction and enhance their ComfyUI projects with minimal effort.
+This node streamlines face extraction and concatenation, making it ideal for enhancing ComfyUI workflows with minimal effort.
 
 <br>
 <br>
 
-![image](https://github.com/user-attachments/assets/989ff56b-90c1-4c4b-adc9-1c65db328eb0)
-
+![image](https://github.com/user-attachments/assets/e64db05a-9ca8-4728-ad16-6fe189d4e1f8)
 
 
 <br>
@@ -104,7 +107,7 @@ This node is perfect for anyone looking to streamline face extraction and enhanc
 
 ## Installation
 
-Search for `KGnodes` in "Comfy Manager" or alternatively:
+Search for `KGnodes` in "ComfyUI Manager" or alternatively:
 
 1. Go to comfyUI custom_nodes folder, `ComfyUI/custom_nodes/`
    
