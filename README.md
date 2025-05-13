@@ -1,7 +1,16 @@
-# KGnodes
+<div align="center">
+  
+![version](https://img.shields.io/badge/Version-1.3.7-blue)
+[![GitHub issues](https://img.shields.io/github/issues/shahkoorosh/ComfyUI-KGnodes?color=red)](https://github.com/shahkoorosh/ComfyUI-KGnodes/issues)
+[![GitHub Repo stars](https://img.shields.io/github/stars/shahkoorosh/ComfyUI-KGnodes?style=social)](https://github.com/shahkoorosh/ComfyUI-KGnodes/stargazers)
+[![Python](https://img.shields.io/badge/Python-+3.10-purple.svg)](https://www.python.org/)
+[![License](https://img.shields.io/github/license/shahkoorosh/ComfyUI-KGnodes)](https://github.com/shahkoorosh/ComfyUI-KGnodes/blob/main/LICENSE)
+[![YouTube](https://img.shields.io/badge/YouTube-Subscribe-red?logo=youtube&logoColor=white)](https://www.youtube.com/@UD.SMedia)
+
+# ComfyUI-KGnodes
 
 This Custom node offers various nodes to make it easier to use ComfyUI.
-
+</div>
 
 ![image](https://github.com/user-attachments/assets/7887ddcf-43cd-4f83-9fd9-2ed04a6c9d2b)
 
