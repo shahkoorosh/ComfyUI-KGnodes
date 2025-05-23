@@ -1,6 +1,6 @@
 <div align="center">
   
-![version](https://img.shields.io/badge/Version-1.3.7-blue)
+![version](https://img.shields.io/badge/Version-1.3.8-blue)
 [![GitHub issues](https://img.shields.io/github/issues/shahkoorosh/ComfyUI-KGnodes?color=red)](https://github.com/shahkoorosh/ComfyUI-KGnodes/issues)
 [![GitHub Repo stars](https://img.shields.io/github/stars/shahkoorosh/ComfyUI-KGnodes?style=social)](https://github.com/shahkoorosh/ComfyUI-KGnodes/stargazers)
 [![Python](https://img.shields.io/badge/Python-+3.10-purple.svg)](https://www.python.org/)
